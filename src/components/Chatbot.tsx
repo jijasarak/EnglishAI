@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
-
-const GEMINI_API_KEY = 'AIzaSyC1U4B2azzXyJwfO6byo_UHTJlb3MVU2uw';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+import { callGemini } from '../utils/ai';
 
 interface Message {
   id: string;
@@ -58,16 +56,7 @@ If it's about usage, show different contexts.
 Keep your response conversational but educational.
 `;
 
-      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }]
-        })
-      });
-      
-      const data = await response.json();
-      const aiResponse = data.candidates[0].content.parts[0].text;
+      const aiResponse = await callGemini(prompt);
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
