@@ -116,7 +116,7 @@ function buildSchema(skill: string) {
 }`;
 }
 
-export async function generateSection(skill: keyof User, level: 'beginner'|'intermediate'|'advanced', user: User): Promise<SectionData> {
+export async function generateSection(skill: keyof Omit<User, 'totalXP'|'streak'|'lastActiveDate'|'badges'>, level: 'beginner'|'intermediate'|'advanced', user: User): Promise<SectionData> {
   const progress = user[skill as keyof Omit<User, 'totalXP'|'streak'|'lastActiveDate'|'badges'>] as any;
   const diff = difficultyFromProgress(progress, level);
 
