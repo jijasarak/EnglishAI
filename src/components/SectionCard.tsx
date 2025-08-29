@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { LEVEL_THRESHOLDS } from '../utils/levels';
 import { User, UserProgress } from '../types';
 import { ProgressBar } from './ProgressBar';
 import { Lock } from 'lucide-react';
@@ -13,13 +14,7 @@ interface SectionCardProps {
 }
 
 export function SectionCard({ title, icon, description, progress, onClick, isLocked = false }: SectionCardProps) {
-  const nextLevelXP = {
-    beginner: 100,
-    intermediate: 300,
-    advanced: 500
-  };
-
-  const currentMax = nextLevelXP[progress.level];
+  const currentMax = LEVEL_THRESHOLDS[progress.level];
   const canLevelUp = progress.xp >= currentMax;
 
   return (
