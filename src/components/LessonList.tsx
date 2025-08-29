@@ -34,7 +34,7 @@ export function LessonList({ skill, level, user, onLessonSelect, onBack }: Lesso
     try {
       setLoading(true);
       setError(null);
-      const data = await loadLessonData(skill, level);
+      const data = await loadLessonData(skill, level, user);
       setSectionData(data);
     } catch (err) {
       setError('Failed to load lessons. Please try again.');
