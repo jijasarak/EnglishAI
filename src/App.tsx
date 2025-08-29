@@ -11,6 +11,7 @@ import { LessonList } from './components/LessonList';
 import { LessonPage } from './components/LessonPage';
 import { Confetti } from './components/Confetti';
 import { Chatbot } from './components/Chatbot';
+import { LEVEL_THRESHOLDS } from './utils/levels';
 
 type ViewState = 
   | { type: 'dashboard' }
@@ -60,16 +61,22 @@ function App() {
         setShowConfetti(true);
       }
       
-      // Check for level up
+      // Check for level up and mastery
       const currentSection = updatedUser[currentView.section];
-      const xpThresholds = { beginner: 100, intermediate: 300, advanced: 500 };
-      
-      if (currentSection.level === 'beginner' && currentSection.xp >= xpThresholds.beginner) {
+      if (currentSection.level === 'beginner' && currentSection.xp >= LEVEL_THRESHOLDS.beginner) {
         updatedUser[currentView.section].level = 'intermediate';
         setShowConfetti(true);
-      } else if (currentSection.level === 'intermediate' && currentSection.xp >= xpThresholds.intermediate) {
+      } else if (currentSection.level === 'intermediate' && currentSection.xp >= LEVEL_THRESHOLDS.intermediate) {
         updatedUser[currentView.section].level = 'advanced';
         setShowConfetti(true);
+      } else if (currentSection.level === 'advanced' && currentSection.xp >= LEVEL_THRESHOLDS.advanced) {
+        // mastery
+        const masteryId = `${currentView.section}-mastery`;
+        if (!updatedUser.badges.includes(masteryId)) {
+          updatedUser = { ...updatedUser, badges: [...updatedUser.badges, masteryId] };
+          setNewBadgeCount(prev => prev + 1);
+          setShowConfetti(true);
+        }
       }
       
       setUser(updatedUser);
