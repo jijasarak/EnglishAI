@@ -1,5 +1,4 @@
-const GEMINI_API_KEY = 'AIzaSyC1U4B2azzXyJwfO6byo_UHTJlb3MVU2uw';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+import { callGemini, extractJson } from './ai';
 
 export interface AIFeedback {
   correct: boolean;
@@ -26,23 +25,9 @@ Please evaluate the answer and respond in this exact JSON format:
 Consider grammar, vocabulary, content relevance, and completeness in your evaluation.
 `;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-      })
-    });
-    
-    const data = await response.json();
-    const responseText = data.candidates[0].content.parts[0].text;
-    
-    // Try to parse JSON response
+    const responseText = await callGemini(prompt);
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
+      return extractJson<AIFeedback>(responseText);
     } catch (parseError) {
       console.error('Error parsing AI response:', parseError);
     }
