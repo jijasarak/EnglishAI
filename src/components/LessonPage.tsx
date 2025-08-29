@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { User } from '../types';
 import { LessonData } from '../utils/dataLoader';
 import { checkOpenAnswer, checkSpeakingAnswer, checkWritingAnswer, AIFeedback } from '../utils/aiChecker';
+import { getGeminiApiKey } from '../utils/ai';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { Play, Square, Mic, MicOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
 
@@ -126,9 +127,14 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
 
   const handleOpenAnswer = async () => {
     if (!userInput.trim()) return;
-    
+
+    if (!getGeminiApiKey()) {
+      setAiFeedback({ correct: false, score: 0, feedback: 'Gemini API key missing. Click the gear icon in the header to add your key, then submit again.' });
+      return;
+    }
+
     setIsSubmitting(true);
-    
+
     try {
       let feedback: AIFeedback;
       

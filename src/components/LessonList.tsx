@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User } from '../types';
 import { loadLessonData, SectionData, LessonData } from '../utils/dataLoader';
-import { Loader2, Play, BookOpen, Mic, PenTool, FileText, Brain } from 'lucide-react';
+import { getGeminiApiKey } from '../utils/ai';
+import { Loader2, Play, BookOpen, Mic, PenTool, FileText, Brain, Settings } from 'lucide-react';
 
 interface LessonListProps {
   skill: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'>;
@@ -34,6 +35,11 @@ export function LessonList({ skill, level, user, onLessonSelect, onBack }: Lesso
     try {
       setLoading(true);
       setError(null);
+      if (!getGeminiApiKey()) {
+        setError('Gemini API key missing. Click the gear icon in the header, paste your key, then press Try Again.');
+        setSectionData(null);
+        return;
+      }
       const data = await loadLessonData(skill, level, user);
       setSectionData(data);
     } catch (err) {
@@ -71,9 +77,13 @@ export function LessonList({ skill, level, user, onLessonSelect, onBack }: Lesso
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Failed to load lessons'}</p>
-          <button 
+          <div className="flex items-center justify-center gap-3">
+            <Settings className="w-5 h-5 text-gray-500" />
+            <span className="text-gray-600">Use the gear icon in the header to add your Gemini API key.</span>
+          </div>
+          <button
             onClick={loadData}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
             Try Again
           </button>
