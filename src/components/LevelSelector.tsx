@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { isLevelUnlocked, isLevelCompleted, LEVEL_THRESHOLDS } from '../utils/levels';
 import { User, UserProgress } from '../types';
 import { Lock, CheckCircle } from 'lucide-react';
 
@@ -13,17 +14,9 @@ interface LevelSelectorProps {
 export function LevelSelector({ title, icon, progress, onLevelSelect, onBack }: LevelSelectorProps) {
   const levels = ['beginner', 'intermediate', 'advanced'] as const;
   
-  const isUnlocked = (level: typeof levels[number]) => {
-    if (level === 'beginner') return true;
-    if (level === 'intermediate') return progress.xp >= 50 || progress.level === 'intermediate' || progress.level === 'advanced';
-    if (level === 'advanced') return progress.xp >= 150 || progress.level === 'advanced';
-    return false;
-  };
+  const isUnlocked = (level: typeof levels[number]) => isLevelUnlocked(progress.xp, level);
 
-  const isCompleted = (level: typeof levels[number]) => {
-    const requiredXP = { beginner: 50, intermediate: 150, advanced: 300 };
-    return progress.xp >= requiredXP[level];
-  };
+  const isCompleted = (level: typeof levels[number]) => isLevelCompleted(progress.xp, level);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
@@ -77,9 +70,7 @@ export function LevelSelector({ title, icon, progress, onLevelSelect, onBack }: 
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Required XP:</span>
-                    <span className="font-medium">
-                      {level === 'beginner' ? '0' : level === 'intermediate' ? '50' : '150'}
-                    </span>
+                    <span className="font-medium">{level === 'beginner' ? '0' : level === 'intermediate' ? LEVEL_THRESHOLDS.beginner : LEVEL_THRESHOLDS.intermediate}</span>
                   </div>
                   
                   {level === 'beginner' && (
