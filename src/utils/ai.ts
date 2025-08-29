@@ -1,4 +1,4 @@
-export const GEMINI_MODEL = 'gemini-1.5-flash';
+export const GEMINI_MODEL = ((import.meta as any).env?.VITE_GEMINI_MODEL as string) || 'gemini-1.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export function getGeminiApiKey(): string | undefined {
