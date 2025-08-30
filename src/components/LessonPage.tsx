@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { User } from '../types';
 import { LessonData } from '../utils/dataLoader';
 import { checkOpenAnswer, checkSpeakingAnswer, checkWritingAnswer, AIFeedback } from '../utils/aiChecker';
+import { generateNextTask } from '../utils/lessonGenerator';
 import { getGeminiApiKey } from '../utils/ai';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { Play, Square, Mic, MicOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
