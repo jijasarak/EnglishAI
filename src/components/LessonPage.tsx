@@ -99,14 +99,7 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
     };
 
     setAnswers(prev => [...prev, answerObj]);
-    
-    if (isLastQuestion) {
-      finishLesson([...answers, answerObj]);
-    } else {
-      setTimeout(() => {
-        setCurrentQuestionIndex(prev => prev + 1);
-      }, 1500);
-    }
+    onComplete(points, `${lesson.id}-${Date.now()}`);
   };
 
   const handleFillBlankAnswer = () => {
