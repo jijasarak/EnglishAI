@@ -496,31 +496,7 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
     return null;
   };
 
-  if (showResults) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-xl p-8 shadow-2xl text-center max-w-md w-full"
-        >
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">Lesson Complete!</h2>
-          <p className="text-xl text-gray-600 mb-6">
-            You earned <span className="font-bold text-blue-600">{totalScore} points</span>
-          </p>
-          <div className="space-y-4">
-            <button
-              onClick={onBack}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold"
-            >
-              Continue Learning
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
+  // Continuous flow: no hard end screen
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
