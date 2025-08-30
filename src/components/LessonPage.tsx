@@ -46,6 +46,34 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
     }
   }, [transcript, skill]);
 
+  const norm = (v: any) => String(v ?? '').toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ');
+  const resolveMcqCorrectIndex = (q: any): number | null => {
+    const ca = q?.correctAnswer as any;
+    if (typeof ca === 'number') return ca;
+    if (typeof ca === 'string') {
+      const n = Number(ca.trim());
+      if (Number.isInteger(n) && String(n) === ca.trim()) return n;
+      const idx = (q?.options || []).findIndex((o: any) => norm(o) === norm(ca));
+      return idx >= 0 ? idx : null;
+    }
+    return null;
+  };
+  const mcqCorrectText = (q: any): string => {
+    const idx = resolveMcqCorrectIndex(q);
+    if (idx != null && Array.isArray(q?.options) && q.options[idx] != null) return String(q.options[idx]);
+    return String(q?.correctAnswer ?? '');
+  };
+  const normalizeBoolean = (v: any): boolean | null => {
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'number') return v === 1 ? true : v === 0 ? false : null;
+    if (typeof v === 'string') {
+      const s = v.trim().toLowerCase();
+      if (s === 'true' || s === '1') return true;
+      if (s === 'false' || s === '0') return false;
+    }
+    return null;
+  };
+
   const playAudio = (text: string) => {
     if (!('speechSynthesis' in window)) return;
     try {
@@ -101,53 +129,55 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
   };
 
   const handleMCQAnswer = (optionIndex: number) => {
-    const isCorrect = optionIndex === currentQuestion.correctAnswer;
+    const resolved = resolveMcqCorrectIndex(currentQuestion);
+    const isCorrect = resolved != null ? optionIndex === resolved : false;
     const points = isCorrect ? (currentQuestion.points || 10) : 0;
-    
+
     const answer: Answer = {
       questionId: currentQuestion.id,
       answer: optionIndex,
       isCorrect,
       points,
-      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${currentQuestion.options?.[currentQuestion.correctAnswer as number]}`
+      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${mcqCorrectText(currentQuestion)}`
     };
 
     setAnswers(prev => [...prev, answer]);
-    
+
     // No auto-advance; show feedback and wait for Next
   };
 
   const handleTrueFalseAnswer = (answer: boolean) => {
-    const isCorrect = answer === currentQuestion.correctAnswer;
+    const correct = normalizeBoolean(currentQuestion.correctAnswer);
+    const isCorrect = correct != null ? answer === correct : false;
     const points = isCorrect ? (currentQuestion.points || 10) : 0;
-    
+
     const answerObj: Answer = {
       questionId: currentQuestion.id,
       answer,
       isCorrect,
       points,
-      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${currentQuestion.correctAnswer}`
+      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${correct === null ? String(currentQuestion.correctAnswer) : correct ? 'True' : 'False'}`
     };
 
     setAnswers(prev => [...prev, answerObj]);
-    
+
     // No auto-advance; show feedback and wait for Next
   };
 
   const handleFillBlankAnswer = () => {
-    const isCorrect = userInput.toLowerCase().trim() === (currentQuestion.correctAnswer as string).toLowerCase().trim();
+    const isCorrect = norm(userInput) === norm(currentQuestion.correctAnswer as string);
     const points = isCorrect ? (currentQuestion.points || 10) : 0;
-    
+
     const answer: Answer = {
       questionId: currentQuestion.id,
       answer: userInput,
       isCorrect,
       points,
-      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${currentQuestion.correctAnswer}`
+      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${String(currentQuestion.correctAnswer)}`
     };
 
     setAnswers(prev => [...prev, answer]);
-    
+
     // No auto-advance; show feedback and wait for Next
   };
 
