@@ -17,39 +17,38 @@ export async function callGemini(prompt: string): Promise<string> {
     body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] }),
   });
 
+  // Read the body ONCE to avoid "body stream already read" issues
+  const rawText = await res.text();
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Gemini error ${res.status}: ${text}`);
+    throw new Error(`Gemini error ${res.status}: ${rawText}`);
   }
 
-  const data = await res.json();
+  let data: any;
+  try {
+    data = JSON.parse(rawText);
+  } catch (e) {
+    throw new Error(`Invalid JSON from Gemini: ${String(e)}`);
+  }
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   return text;
 }
 
 function sanitizeJsonLike(input: string): string {
   let s = input.trim();
-  // strip code fences
   s = s.replace(/^```(?:json)?/i, '').replace(/```$/i, '');
-  // extract first JSON-looking object/array
   const match = s.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
   s = match ? match[0] : s;
-  // replace smart quotes
   s = s.replace(/[\u2018\u2019\u201A\u201B]/g, "'").replace(/[\u201C\u201D\u201E\u201F]/g, '"');
-  // remove trailing commas before ] or }
   s = s.replace(/,(\s*[}\]])/g, '$1');
-  // collapse newlines in strings (common in model outputs breaking JSON)
   return s;
 }
 
 export function extractJson<T = any>(raw: string): T {
-  // First attempt direct parse of first JSON block
   try {
     const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (!match) throw new Error('No JSON in model response');
     return JSON.parse(match[0]);
   } catch {}
-  // Sanitize and retry
   const sanitized = sanitizeJsonLike(raw);
   try {
     return JSON.parse(sanitized);
