@@ -50,8 +50,14 @@ export function LessonList({ skill, level, user, onLessonSelect, onBack }: Lesso
     }
   };
 
-  const isLessonCompleted = (lessonId: string) => {
-    return user[skill].completed.includes(lessonId);
+  const slugify = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').replace(/-+/g, '-');
+  const isLessonCompleted = (lessonId: string, lesson?: LessonData, index?: number) => {
+    const completed = user[skill].completed;
+    const byId = completed.includes(lessonId);
+    const legacyIndexId = `${skill}-${level}-lesson-${(index ?? 0) + 1}`;
+    const byLegacy = completed.includes(legacyIndexId);
+    const byTitle = lesson?.title ? completed.includes(`${skill}-${level}-${slugify(lesson.title)}`) : false;
+    return byId || byLegacy || byTitle;
   };
 
   const canAccessLesson = (index: number) => {
