@@ -6,7 +6,8 @@ import { checkOpenAnswer, checkSpeakingAnswer, checkWritingAnswer, AIFeedback } 
 import { generateNextTask } from '../utils/lessonGenerator';
 import { getGeminiApiKey } from '../utils/ai';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-import { Play, Square, Mic, MicOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { useTextToSpeech } from '../hooks/useTextToSpeech';
+import { Play, Pause, RotateCcw, Mic, MicOff, Loader2, CheckCircle, XCircle, Volume2 } from 'lucide-react';
 
 interface LessonPageProps {
   skill: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'>;
@@ -30,7 +31,7 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { isSupported: ttsSupported, status: ttsStatus, play: ttsPlay, pause: ttsPause, resume: ttsResume, stop: ttsStop } = useTextToSpeech();
   const [aiFeedback, setAiFeedback] = useState<AIFeedback | null>(null);
 
   const { isListening, transcript, error: speechError, startListening, stopListening, resetTranscript } = useSpeechRecognition();
@@ -69,15 +70,26 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
     }
   };
 
-  const playAudio = (text: string) => {
-    if ('speechSynthesis' in window) {
-      setIsPlaying(true);
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.8;
-      utterance.pitch = 1;
-      utterance.onend = () => setIsPlaying(false);
-      speechSynthesis.speak(utterance);
+  const playLessonAudio = (text: string) => {
+    if (!ttsSupported) return;
+    if (ttsStatus === 'paused') { ttsResume(); return; }
+    if (ttsStatus === 'playing') { ttsPause(); return; }
+    ttsPlay(text, { rate: 0.95, pitch: 1 });
+  };
+
+  const restartLessonAudio = (text: string) => {
+    if (!ttsSupported) return;
+    ttsStop();
+    ttsPlay(text, { rate: 0.95, pitch: 1 });
+  };
+
+  const speakQuestion = () => {
+    if (!ttsSupported || !currentQuestion) return;
+    let q = `${currentQuestion.question}`;
+    if (currentQuestion.type === 'mcq' && Array.isArray(currentQuestion.options)) {
+      q += '. Options: ' + currentQuestion.options.map((opt: string, i: number) => `Option ${i + 1}: ${opt}`).join('. ');
     }
+    ttsPlay(q, { rate: 0.98, pitch: 1 });
   };
 
   const handleMCQAnswer = (optionIndex: number) => {
@@ -193,7 +205,13 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-lg">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">{currentQuestion.question}</h3>
+          <div className="flex items-start justify-between mb-4">
+            <h3 className="text-xl font-semibold text-gray-800">{currentQuestion.question}</h3>
+            <button onClick={speakQuestion} className="ml-4 inline-flex items-center gap-1 text-blue-600 hover:text-blue-700">
+              <Volume2 className="w-4 h-4" />
+              <span>Listen</span>
+            </button>
+          </div>
 
           {currentQuestion.type === 'mcq' && (
             <div className="space-y-3">
@@ -394,14 +412,29 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
         <div className="mb-8 p-6 bg-blue-50 rounded-lg">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-blue-800">Listen to the passage</h3>
-            <button
-              onClick={() => playAudio(l.audioText)}
-              disabled={isPlaying}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isPlaying ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              <span>{isPlaying ? 'Playing...' : 'Play Audio'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => playLessonAudio(l.audioText)}
+                className="flex items-center space-x-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {ttsStatus === 'playing' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                <span>{ttsStatus === 'playing' ? 'Pause' : ttsStatus === 'paused' ? 'Resume' : 'Play'}</span>
+              </button>
+              <button
+                onClick={() => restartLessonAudio(l.audioText)}
+                className="flex items-center space-x-2 bg-gray-200 text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-300"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Restart</span>
+              </button>
+              <button
+                onClick={() => ttsStop()}
+                className="flex items-center space-x-2 bg-gray-200 text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-300"
+              >
+                <Square className="w-4 h-4" />
+                <span>Stop</span>
+              </button>
+            </div>
           </div>
         </div>
       );
