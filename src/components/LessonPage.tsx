@@ -44,6 +44,21 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
     }
   }, [transcript, skill]);
 
+  const loadNextTask = async () => {
+    try {
+      const next = await generateNextTask(skill as string, answers.slice(-5).map(a => ({ correct: !!a.isCorrect, points: a.points })), undefined);
+      if (next.lesson) {
+        setCurrentLesson((prev: any) => ({ ...prev, ...next.lesson }));
+      }
+      setCurrentQuestion(next.question);
+      setAiFeedback(null);
+      setUserInput('');
+      setCurrentQuestionIndex(idx => idx + 1);
+    } catch (e) {
+      console.error('Failed to load next task', e);
+    }
+  };
+
   const playAudio = (text: string) => {
     if ('speechSynthesis' in window) {
       setIsPlaying(true);
