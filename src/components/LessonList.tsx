@@ -50,8 +50,14 @@ export function LessonList({ skill, level, user, onLessonSelect, onBack }: Lesso
     }
   };
 
-  const isLessonCompleted = (lessonId: string) => {
-    return user[skill].completed.includes(lessonId);
+  const slugify = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').replace(/-+/g, '-');
+  const isLessonCompleted = (lessonId: string, lesson?: LessonData, index?: number) => {
+    const completed = user[skill].completed;
+    const byId = completed.includes(lessonId);
+    const legacyIndexId = `${skill}-${level}-lesson-${(index ?? 0) + 1}`;
+    const byLegacy = completed.includes(legacyIndexId);
+    const byTitle = lesson?.title ? completed.includes(`${skill}-${level}-${slugify(lesson.title)}`) : false;
+    return byId || byLegacy || byTitle;
   };
 
   const canAccessLesson = (index: number) => {
@@ -111,8 +117,8 @@ export function LessonList({ skill, level, user, onLessonSelect, onBack }: Lesso
 
         <div className="grid gap-6">
           {sectionData.lessons.map((lesson, index) => {
-            const completed = isLessonCompleted(lesson.id);
-            const canAccess = canAccessLesson(index);
+            const completed = isLessonCompleted(lesson.id, lesson, index);
+            const canAccess = index === 0 ? true : isLessonCompleted(sectionData.lessons[index - 1].id, sectionData.lessons[index - 1], index - 1);
 
             return (
               <motion.div

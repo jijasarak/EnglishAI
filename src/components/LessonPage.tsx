@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { User } from '../types';
 import { LessonData } from '../utils/dataLoader';
 import { checkOpenAnswer, checkSpeakingAnswer, checkWritingAnswer, AIFeedback } from '../utils/aiChecker';
 import { getGeminiApiKey } from '../utils/ai';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-import { Play, Square, Mic, MicOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Play, Pause, RotateCcw, Mic, MicOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 interface LessonPageProps {
   skill: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'>;
@@ -30,7 +30,11 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
   const [showResults, setShowResults] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<AIFeedback | null>(null);
+  const [practiceStarted, setPracticeStarted] = useState(skill !== 'reading');
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const ttsQueueRef = useRef<SpeechSynthesisUtterance[] | null>(null);
 
   const { isListening, transcript, error: speechError, startListening, stopListening, resetTranscript } = useSpeechRecognition();
 
@@ -44,85 +48,151 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
     }
   }, [transcript, skill]);
 
+  useEffect(() => {
+    setPracticeStarted(skill !== 'reading');
+  }, [skill, lesson?.id]);
+
+  const norm = (v: any) => String(v ?? '').toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ');
+  const resolveMcqCorrectIndex = (q: any): number | null => {
+    const ca = q?.correctAnswer as any;
+    if (typeof ca === 'number') return ca;
+    if (typeof ca === 'string') {
+      const n = Number(ca.trim());
+      if (Number.isInteger(n) && String(n) === ca.trim()) return n;
+      const idx = (q?.options || []).findIndex((o: any) => norm(o) === norm(ca));
+      return idx >= 0 ? idx : null;
+    }
+    return null;
+  };
+  const mcqCorrectText = (q: any): string => {
+    const idx = resolveMcqCorrectIndex(q);
+    if (idx != null && Array.isArray(q?.options) && q.options[idx] != null) return String(q.options[idx]);
+    return String(q?.correctAnswer ?? '');
+  };
+  const normalizeBoolean = (v: any): boolean | null => {
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'number') return v === 1 ? true : v === 0 ? false : null;
+    if (typeof v === 'string') {
+      const s = v.trim().toLowerCase();
+      if (s === 'true' || s === '1') return true;
+      if (s === 'false' || s === '0') return false;
+    }
+    return null;
+  };
+
   const playAudio = (text: string) => {
-    if ('speechSynthesis' in window) {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      setIsPaused(false);
       setIsPlaying(true);
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.8;
-      utterance.pitch = 1;
-      utterance.onend = () => setIsPlaying(false);
-      speechSynthesis.speak(utterance);
+      const chunks = String(text).split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+      const queue = chunks.map((chunk) => {
+        const u = new SpeechSynthesisUtterance(chunk);
+        u.lang = 'en-US';
+        u.rate = 0.95;
+        u.pitch = 1;
+        return u;
+      });
+      ttsQueueRef.current = queue;
+      const speakNext = () => {
+        if (!ttsQueueRef.current || ttsQueueRef.current.length === 0) {
+          setIsPlaying(false);
+          setIsPaused(false);
+          utteranceRef.current = null;
+          return;
+        }
+        const next = ttsQueueRef.current.shift()!;
+        utteranceRef.current = next;
+        next.onend = () => speakNext();
+        next.onerror = () => speakNext();
+        window.speechSynthesis.speak(next);
+      };
+      speakNext();
+    } catch {
+      setIsPlaying(false);
+      setIsPaused(false);
     }
   };
 
+  const pauseAudio = () => {
+    if (!('speechSynthesis' in window)) return;
+    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+      window.speechSynthesis.pause();
+      setIsPaused(true);
+      setIsPlaying(false);
+    }
+  };
+
+  const resumeAudio = () => {
+    if (!('speechSynthesis' in window)) return;
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setIsPaused(false);
+      setIsPlaying(true);
+    }
+  };
+
+  const restartAudio = (text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    ttsQueueRef.current = null;
+    setIsPaused(false);
+    setIsPlaying(false);
+    playAudio(text);
+  };
+
   const handleMCQAnswer = (optionIndex: number) => {
-    const isCorrect = optionIndex === currentQuestion.correctAnswer;
+    const resolved = resolveMcqCorrectIndex(currentQuestion);
+    const isCorrect = resolved != null ? optionIndex === resolved : false;
     const points = isCorrect ? (currentQuestion.points || 10) : 0;
-    
+
     const answer: Answer = {
       questionId: currentQuestion.id,
       answer: optionIndex,
       isCorrect,
       points,
-      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${currentQuestion.options?.[currentQuestion.correctAnswer as number]}`
+      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${mcqCorrectText(currentQuestion)}`
     };
 
     setAnswers(prev => [...prev, answer]);
-    
-    if (isLastQuestion) {
-      finishLesson([...answers, answer]);
-    } else {
-      setTimeout(() => {
-        setCurrentQuestionIndex(prev => prev + 1);
-      }, 1500);
-    }
+
+    // No auto-advance; show feedback and wait for Next
   };
 
   const handleTrueFalseAnswer = (answer: boolean) => {
-    const isCorrect = answer === currentQuestion.correctAnswer;
+    const correct = normalizeBoolean(currentQuestion.correctAnswer);
+    const isCorrect = correct != null ? answer === correct : false;
     const points = isCorrect ? (currentQuestion.points || 10) : 0;
-    
+
     const answerObj: Answer = {
       questionId: currentQuestion.id,
       answer,
       isCorrect,
       points,
-      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${currentQuestion.correctAnswer}`
+      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${correct === null ? String(currentQuestion.correctAnswer) : correct ? 'True' : 'False'}`
     };
 
     setAnswers(prev => [...prev, answerObj]);
-    
-    if (isLastQuestion) {
-      finishLesson([...answers, answerObj]);
-    } else {
-      setTimeout(() => {
-        setCurrentQuestionIndex(prev => prev + 1);
-      }, 1500);
-    }
+
+    // No auto-advance; show feedback and wait for Next
   };
 
   const handleFillBlankAnswer = () => {
-    const isCorrect = userInput.toLowerCase().trim() === (currentQuestion.correctAnswer as string).toLowerCase().trim();
+    const isCorrect = norm(userInput) === norm(currentQuestion.correctAnswer as string);
     const points = isCorrect ? (currentQuestion.points || 10) : 0;
-    
+
     const answer: Answer = {
       questionId: currentQuestion.id,
       answer: userInput,
       isCorrect,
       points,
-      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${currentQuestion.correctAnswer}`
+      feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is: ${String(currentQuestion.correctAnswer)}`
     };
 
     setAnswers(prev => [...prev, answer]);
-    
-    if (isLastQuestion) {
-      finishLesson([...answers, answer]);
-    } else {
-      setTimeout(() => {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setUserInput('');
-      }, 1500);
-    }
+
+    // No auto-advance; show feedback and wait for Next
   };
 
   const handleOpenAnswer = async () => {
@@ -158,15 +228,7 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
 
       setAnswers(prev => [...prev, answer]);
       
-      if (isLastQuestion) {
-        setTimeout(() => finishLesson([...answers, answer]), 3000);
-      } else {
-        setTimeout(() => {
-          setCurrentQuestionIndex(prev => prev + 1);
-          setUserInput('');
-          setAiFeedback(null);
-        }, 3000);
-      }
+      // No auto-advance; show feedback and wait for Next
     } catch (error) {
       console.error('Error checking answer:', error);
       setAiFeedback({
@@ -184,6 +246,25 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
     setTotalScore(total);
     setShowResults(true);
     onComplete(total, lesson.id);
+  };
+
+  const goNext = () => {
+    const answeredCurrent = answers.find(a => a.questionId === currentQuestion.id);
+    if (!answeredCurrent && !aiFeedback) return;
+    if (isLastQuestion) {
+      finishLesson(answers);
+    } else {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setUserInput('');
+      setAiFeedback(null);
+    }
+  };
+
+  const tryAgain = () => {
+    // Allow re-entry for open/fill-blank answers
+    setUserInput('');
+    setAiFeedback(null);
+    setAnswers(prev => prev.filter(a => a.questionId !== currentQuestion.id));
   };
 
   const renderQuestion = () => {
@@ -212,8 +293,9 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
             <div className="space-y-3">
               {currentQuestion.options?.map((option, index) => {
                 const isSelected = answers.find(a => a.questionId === currentQuestion.id)?.answer === index;
-                const isCorrect = index === currentQuestion.correctAnswer;
-                
+                const resolved = resolveMcqCorrectIndex(currentQuestion);
+                const isCorrect = resolved != null ? index === resolved : false;
+
                 return (
                   <button
                     key={index}
@@ -250,8 +332,9 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
             <div className="flex space-x-4">
               {[true, false].map((value) => {
                 const isSelected = answers.find(a => a.questionId === currentQuestion.id)?.answer === value;
-                const isCorrect = value === currentQuestion.correctAnswer;
-                
+                const correct = normalizeBoolean(currentQuestion.correctAnswer);
+                const isCorrect = correct != null ? value === correct : false;
+
                 return (
                   <button
                     key={value.toString()}
@@ -379,9 +462,7 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
                     ) : (
                       <XCircle className="w-5 h-5 text-red-600" />
                     )}
-                    <span className="font-semibold">
-                      Score: {aiFeedback.score}/100
-                    </span>
+                    <span className="font-semibold">Score: {aiFeedback.score}/100</span>
                   </div>
                   <p className="text-gray-700">{aiFeedback.feedback}</p>
                 </div>
@@ -392,6 +473,25 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
               )}
             </div>
           )}
+
+          {/* Navigation controls: Try Again and Next */}
+          <div className="mt-6 flex items-center justify-end gap-3">
+            {hasAnswered && (currentQuestion.type === 'open' || currentQuestion.type === 'fill-blank') && (
+              <button
+                onClick={tryAgain}
+                className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+              >
+                Try Again
+              </button>
+            )}
+            <button
+              onClick={goNext}
+              disabled={!hasAnswered}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -403,24 +503,47 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
         <div className="mb-8 p-6 bg-blue-50 rounded-lg">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-blue-800">Listen to the passage</h3>
-            <button
-              onClick={() => playAudio(lesson.audioText)}
-              disabled={isPlaying}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isPlaying ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              <span>{isPlaying ? 'Playing...' : 'Play Audio'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => playAudio(lesson.audioText)}
+                disabled={isPlaying || isPaused}
+                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                <Play className="w-4 h-4" />
+                <span>Play</span>
+              </button>
+              <button
+                onClick={isPaused ? () => resumeAudio() : () => pauseAudio()}
+                disabled={!isPlaying && !isPaused}
+                className="flex items-center space-x-2 bg-gray-200 text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+              >
+                <Pause className="w-4 h-4" />
+                <span>{isPaused ? 'Resume' : 'Pause'}</span>
+              </button>
+              <button
+                onClick={() => restartAudio(lesson.audioText)}
+                className="flex items-center space-x-2 bg-gray-200 text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-300"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Restart</span>
+              </button>
+            </div>
           </div>
         </div>
       );
     }
 
-    if (skill === 'reading' && lesson.text) {
+    if (skill === 'reading' && lesson.text && !practiceStarted) {
       return (
         <div className="mb-8 p-6 bg-green-50 rounded-lg">
           <h3 className="text-lg font-semibold text-green-800 mb-4">Read the passage</h3>
-          <p className="text-gray-700 leading-relaxed">{lesson.text}</p>
+          <p className="text-gray-700 leading-relaxed mb-4">{lesson.text}</p>
+          <button
+            onClick={() => setPracticeStarted(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+          >
+            Practice
+          </button>
         </div>
       );
     }
@@ -555,7 +678,7 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
 
         {renderContent()}
 
-        {questions.length > 0 ? (
+        {(practiceStarted || skill !== 'reading') && questions.length > 0 ? (
           renderQuestion()
         ) : (
           <div className="bg-white rounded-xl p-8 shadow-lg text-center">
