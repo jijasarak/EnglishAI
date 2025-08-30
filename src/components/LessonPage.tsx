@@ -44,6 +44,13 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
     }
   }, [transcript, skill]);
 
+  useEffect(() => {
+    if (!currentQuestion) {
+      loadNextTask();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadNextTask = async () => {
     try {
       const next = await generateNextTask(skill as string, answers.slice(-5).map(a => ({ correct: !!a.isCorrect, points: a.points })), undefined);
@@ -134,9 +141,9 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
       if (skill === 'speaking') {
         feedback = await checkSpeakingAnswer(currentQuestion.question, userInput);
       } else if (skill === 'writing') {
-        feedback = await checkWritingAnswer(lesson.prompt || currentQuestion.question, userInput, lesson.minWords);
+        feedback = await checkWritingAnswer((currentLesson && currentLesson.prompt) || currentQuestion.question, userInput, currentLesson?.minWords);
       } else {
-        feedback = await checkOpenAnswer(currentQuestion.question, userInput, lesson.text || lesson.audioText);
+        feedback = await checkOpenAnswer(currentQuestion.question, userInput, (currentLesson && (currentLesson.text || currentLesson.audioText)) || undefined);
       }
       
       setAiFeedback(feedback);
@@ -326,9 +333,9 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
                 disabled={hasAnswered || (skill === 'speaking' && isListening)}
               />
               
-              {skill === 'writing' && lesson.minWords && (
+              {skill === 'writing' && currentLesson?.minWords && (
                 <p className="text-sm text-gray-500">
-                  Words: {userInput.trim().split(/\s+/).filter(word => word.length > 0).length} / {lesson.minWords} minimum
+                  Words: {userInput.trim().split(/\s+/).filter(word => word.length > 0).length} / {currentLesson.minWords} minimum
                 </p>
               )}
 
