@@ -150,16 +150,7 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
       };
 
       setAnswers(prev => [...prev, answer]);
-      
-      if (isLastQuestion) {
-        setTimeout(() => finishLesson([...answers, answer]), 3000);
-      } else {
-        setTimeout(() => {
-          setCurrentQuestionIndex(prev => prev + 1);
-          setUserInput('');
-          setAiFeedback(null);
-        }, 3000);
-      }
+      onComplete(answer.points || 0, `${lesson.id}-${Date.now()}`);
     } catch (error) {
       console.error('Error checking answer:', error);
       setAiFeedback({
