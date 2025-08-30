@@ -8,6 +8,17 @@ function difficultyFromProgress(progress: { xp: number; completed: string[] }, l
   return base + bonus; // 1-5
 }
 
+function getLessonConfig() {
+  const envLessons = Number(((import.meta as any).env?.VITE_LESSONS_PER_SECTION as string) || '') || undefined;
+  const envQuestions = Number(((import.meta as any).env?.VITE_QUESTIONS_PER_LESSON as string) || '') || undefined;
+  const lsLessons = typeof localStorage !== 'undefined' ? Number(localStorage.getItem('lessons_per_section') || '') || undefined : undefined;
+  const lsQuestions = typeof localStorage !== 'undefined' ? Number(localStorage.getItem('questions_per_lesson') || '') || undefined : undefined;
+  return {
+    lessonsPerSection: envLessons || lsLessons || 5,
+    questionsPerLesson: envQuestions || lsQuestions || 6,
+  };
+}
+
 function buildSchema(skill: string) {
   if (skill === 'listening') {
     return `{
