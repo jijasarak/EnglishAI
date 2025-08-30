@@ -1,16 +1,16 @@
 export function getGeminiModel(): string {
-  const fromLocal = typeof localStorage !== 'undefined' ? localStorage.getItem('gemini_model') || undefined : undefined;
   const fromEnv = (import.meta as any).env?.VITE_GEMINI_MODEL as string | undefined;
-  return fromLocal || fromEnv || 'gemini-2.0-flash';
+  const fromLocal = typeof localStorage !== 'undefined' ? localStorage.getItem('gemini_model') || undefined : undefined;
+  return fromEnv || fromLocal || 'gemini-2.0-flash';
 }
 function getGeminiApiUrl(): string {
   return `https://generativelanguage.googleapis.com/v1beta/models/${getGeminiModel()}:generateContent`;
 }
 
 export function getGeminiApiKey(): string | undefined {
-  const fromLocal = localStorage.getItem('gemini_api_key') || undefined;
   const fromEnv = (import.meta as any).env?.VITE_GEMINI_API_KEY as string | undefined;
-  return fromLocal || fromEnv || undefined;
+  const fromLocal = typeof localStorage !== 'undefined' ? localStorage.getItem('gemini_api_key') || undefined : undefined;
+  return fromEnv || fromLocal || undefined;
 }
 
 export async function callGemini(prompt: string): Promise<string> {
