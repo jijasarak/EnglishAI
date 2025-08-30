@@ -9,7 +9,7 @@ export interface AIFeedback {
 export async function checkOpenAnswer(question: string, userAnswer: string, context?: string): Promise<AIFeedback> {
   try {
     const prompt = `
-You are an English teacher evaluating a student's answer. Provide very short, clear feedback (<= 30 words).
+You are an English teacher evaluating a student's answer. Provide concise feedback (<= 50 words) with 1 short improvement tip and, if helpful, a tiny example.
 
 Question: ${question}
 ${context ? `Context: ${context}` : ''}
