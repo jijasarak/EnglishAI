@@ -32,7 +32,9 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<AIFeedback | null>(null);
+  const [practiceStarted, setPracticeStarted] = useState(skill !== 'reading');
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const ttsQueueRef = useRef<SpeechSynthesisUtterance[] | null>(null);
 
   const { isListening, transcript, error: speechError, startListening, stopListening, resetTranscript } = useSpeechRecognition();
 
@@ -45,6 +47,10 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
       setUserInput(transcript);
     }
   }, [transcript, skill]);
+
+  useEffect(() => {
+    setPracticeStarted(skill !== 'reading');
+  }, [skill, lesson?.id]);
 
   const norm = (v: any) => String(v ?? '').toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ');
   const resolveMcqCorrectIndex = (q: any): number | null => {
@@ -80,22 +86,29 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
       window.speechSynthesis.cancel();
       setIsPaused(false);
       setIsPlaying(true);
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.95;
-      utterance.pitch = 1;
-      utterance.onend = () => {
-        setIsPlaying(false);
-        setIsPaused(false);
-        utteranceRef.current = null;
+      const chunks = String(text).split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+      const queue = chunks.map((chunk) => {
+        const u = new SpeechSynthesisUtterance(chunk);
+        u.lang = 'en-US';
+        u.rate = 0.95;
+        u.pitch = 1;
+        return u;
+      });
+      ttsQueueRef.current = queue;
+      const speakNext = () => {
+        if (!ttsQueueRef.current || ttsQueueRef.current.length === 0) {
+          setIsPlaying(false);
+          setIsPaused(false);
+          utteranceRef.current = null;
+          return;
+        }
+        const next = ttsQueueRef.current.shift()!;
+        utteranceRef.current = next;
+        next.onend = () => speakNext();
+        next.onerror = () => speakNext();
+        window.speechSynthesis.speak(next);
       };
-      utterance.onerror = () => {
-        setIsPlaying(false);
-        setIsPaused(false);
-        utteranceRef.current = null;
-      };
-      utteranceRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
+      speakNext();
     } catch {
       setIsPlaying(false);
       setIsPaused(false);
@@ -123,6 +136,7 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
   const restartAudio = (text: string) => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
+    ttsQueueRef.current = null;
     setIsPaused(false);
     setIsPlaying(false);
     playAudio(text);
@@ -517,11 +531,17 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
       );
     }
 
-    if (skill === 'reading' && lesson.text) {
+    if (skill === 'reading' && lesson.text && !practiceStarted) {
       return (
         <div className="mb-8 p-6 bg-green-50 rounded-lg">
           <h3 className="text-lg font-semibold text-green-800 mb-4">Read the passage</h3>
-          <p className="text-gray-700 leading-relaxed">{lesson.text}</p>
+          <p className="text-gray-700 leading-relaxed mb-4">{lesson.text}</p>
+          <button
+            onClick={() => setPracticeStarted(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+          >
+            Practice
+          </button>
         </div>
       );
     }
@@ -656,7 +676,7 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
 
         {renderContent()}
 
-        {questions.length > 0 ? (
+        {(practiceStarted || skill !== 'reading') && questions.length > 0 ? (
           renderQuestion()
         ) : (
           <div className="bg-white rounded-xl p-8 shadow-lg text-center">
