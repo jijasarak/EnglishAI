@@ -18,7 +18,13 @@ export async function callGemini(prompt: string): Promise<string> {
   });
 
   // Read the body ONCE to avoid "body stream already read" issues
-  const rawText = await res.text();
+  // Clone first in case any middleware/devtools touches the original response
+  let rawText: string;
+  try {
+    rawText = await res.clone().text();
+  } catch {
+    rawText = await res.text();
+  }
   if (!res.ok) {
     throw new Error(`Gemini error ${res.status}: ${rawText}`);
   }
