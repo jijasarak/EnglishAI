@@ -347,26 +347,29 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
 
           {/* Show feedback for answered questions */}
           {hasAnswered && (
-            <div className="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
-              {aiFeedback ? (
-                <div>
-                  <div className="flex items-center space-x-2 mb-2">
-                    {aiFeedback.correct ? (
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-600" />
-                    )}
-                    <span className="font-semibold">
-                      Score: {aiFeedback.score}/100
-                    </span>
+            <div className="mt-6 space-y-4">
+              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                {aiFeedback ? (
+                  <div>
+                    <div className="flex items-center space-x-2 mb-2">
+                      {aiFeedback.correct ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-600" />
+                      )}
+                      <span className="font-semibold">Score: {aiFeedback.score}/100</span>
+                    </div>
+                    <p className="text-gray-700">{aiFeedback.feedback}</p>
                   </div>
-                  <p className="text-gray-700">{aiFeedback.feedback}</p>
-                </div>
-              ) : (
-                <p className="text-gray-700">
-                  {answers.find(a => a.questionId === currentQuestion.id)?.feedback}
-                </p>
-              )}
+                ) : (
+                  <p className="text-gray-700">
+                    {answers.find(a => a.questionId === currentQuestion.id)?.feedback}
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end">
+                <button onClick={loadNextTask} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Next</button>
+              </div>
             </div>
           )}
         </div>
