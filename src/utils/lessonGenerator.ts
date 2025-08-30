@@ -131,17 +131,17 @@ export async function generateSection(skill: keyof Omit<User, 'totalXP'|'streak'
   const progress = user[skill as keyof Omit<User, 'totalXP'|'streak'|'lastActiveDate'|'badges'>] as any;
   const diff = difficultyFromProgress(progress, level);
 
+  const cfg = getLessonConfig();
   const prompt = `You are an expert ESL curriculum designer. Create dynamic ${skill} lessons for level ${level}.
 - Begin each lesson with a short tutorial/explanation appropriate to the skill (see schema fields like audioText/text/explanation/prompt/words).
-- Then include 4-6 assignments/questions per lesson.
-- Difficulty should increase lesson-by-lesson within the level. Overall difficulty target: ${diff} out of 5.
+- Each lesson MUST contain exactly ${cfg.questionsPerLesson} questions.
+- Create exactly ${cfg.lessonsPerSection} lessons with progressively increasing difficulty. Overall difficulty target: ${diff} out of 5.
 - Adapt to learner profile: completedActivities=${progress.completed.length}, xp=${progress.xp}.
 - IMPORTANT: Return ONLY valid strict JSON (no markdown, no backticks, no comments).
 - The JSON MUST match this schema exactly (keys present, types correct):
 ${buildSchema(skill)}
-- Create 3 lessons in the "lessons" array with progressively harder content.
-- For MCQ include 4 options and correctAnswer as index (0-based). For fill-blank set correctAnswer as expected string. For true-false use boolean. For open put an exemplar correctAnswer string.
-- Keep texts concise (<= 180 words for reading/audio), writing minWords: beginner 80, intermediate 120, advanced 180.
+- For MCQ include 4 options and correctAnswer as index (0-based). For fill-blank set correctAnswer as expected string. For true-false use boolean. For open put an exemplar correctAnswer string (concise).
+- Keep texts concise (<= 160 words for reading/audio). For writing, do not enforce a minimum length; concise prompts are fine.
 `;
 
   let raw = await callGemini(prompt);
