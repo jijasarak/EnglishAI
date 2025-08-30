@@ -117,8 +117,8 @@ export function LessonList({ skill, level, user, onLessonSelect, onBack }: Lesso
 
         <div className="grid gap-6">
           {sectionData.lessons.map((lesson, index) => {
-            const completed = isLessonCompleted(lesson.id);
-            const canAccess = canAccessLesson(index);
+            const completed = isLessonCompleted(lesson.id, lesson, index);
+            const canAccess = index === 0 ? true : isLessonCompleted(sectionData.lessons[index - 1].id, sectionData.lessons[index - 1], index - 1);
 
             return (
               <motion.div
