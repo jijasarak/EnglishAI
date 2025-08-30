@@ -7,7 +7,7 @@ import { generateNextTask } from '../utils/lessonGenerator';
 import { getGeminiApiKey } from '../utils/ai';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
-import { Play, Pause, RotateCcw, Mic, MicOff, Loader2, CheckCircle, XCircle, Volume2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, Square, Mic, MicOff, Loader2, CheckCircle, XCircle, Volume2 } from 'lucide-react';
 
 interface LessonPageProps {
   skill: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'>;
