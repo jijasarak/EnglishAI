@@ -9,42 +9,44 @@ export interface AIFeedback {
 export async function checkOpenAnswer(question: string, userAnswer: string, context?: string): Promise<AIFeedback> {
   try {
     const prompt = `
-You are an English teacher evaluating a student's answer. Please provide structured feedback.
+You are an English teacher evaluating a student's answer. Provide very short, clear feedback (<= 30 words).
 
 Question: ${question}
 ${context ? `Context: ${context}` : ''}
 Student's Answer: ${userAnswer}
 
-Please evaluate the answer and respond in this exact JSON format:
+Respond ONLY valid JSON:
 {
   "correct": true/false,
   "score": number (0-100),
-  "feedback": "detailed feedback explaining what's good and what could be improved"
+  "feedback": "concise feedback (<= 30 words), actionable and specific"
 }
-
-Consider grammar, vocabulary, content relevance, and completeness in your evaluation.
 `;
 
     const responseText = await callGemini(prompt);
     try {
-      return extractJson<AIFeedback>(responseText);
+      const parsed = extractJson<AIFeedback>(responseText);
+      // Ensure concise feedback
+      if (parsed.feedback) parsed.feedback = String(parsed.feedback).trim().split(/(?<=[.!?])\s+/).slice(0,2).join(' ');
+      return parsed;
     } catch (parseError) {
       console.error('Error parsing AI response:', parseError);
     }
-    
+
     // Fallback response if JSON parsing fails
+    const ok = userAnswer.trim().length > 0;
     return {
-      correct: userAnswer.trim().length > 10,
-      score: userAnswer.trim().length > 10 ? 75 : 25,
-      feedback: responseText || 'Good effort! Keep practicing to improve your English skills.'
+      correct: ok,
+      score: ok ? 60 : 20,
+      feedback: ok ? 'Good start. Add detail and check grammar.' : 'Please write your answer so I can evaluate it.'
     };
-    
+
   } catch (error) {
     console.error('Error checking answer with AI:', error);
     return {
       correct: false,
       score: 0,
-      feedback: 'Unable to evaluate your answer at the moment. Please try again later.'
+      feedback: 'Could not evaluate now. Try again.'
     };
   }
 }
@@ -58,8 +60,7 @@ export async function checkSpeakingAnswer(prompt: string, transcript: string): P
 }
 
 export async function checkWritingAnswer(prompt: string, essay: string, minWords?: number): Promise<AIFeedback> {
-  const wordCount = essay.trim().split(/\s+/).length;
-  const context = `This is a writing exercise. ${minWords ? `Minimum words required: ${minWords}. ` : ''}Word count: ${wordCount}. Evaluate grammar, vocabulary, structure, and content.`;
-  
+  const wordCount = essay.trim().split(/\s+/).filter(Boolean).length;
+  const context = `This is a writing exercise. Word count: ${wordCount}. Evaluate grammar, vocabulary, structure, and content. Do not penalize brevity if content is correct.`;
   return checkOpenAnswer(prompt, essay, context);
 }
