@@ -178,15 +178,8 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Question {currentQuestionIndex + 1} of {questions.length}
-          </h2>
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
-            />
-          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Keep practicing</h2>
+          <p className="text-gray-600">Adaptive questions will continue. Click Next to get a new one.</p>
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-lg">
