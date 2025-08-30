@@ -58,11 +58,14 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
         setCurrentLesson((prev: any) => ({ ...prev, ...next.lesson }));
       }
       setCurrentQuestion(next.question);
+    } catch (e) {
+      console.error('Failed to load next task', e);
+      const fallback = { id: `q-${Date.now()}`, question: 'Choose the correct option', type: 'mcq', options: ['Option A', 'Option B', 'Option C', 'Option D'], correctAnswer: 0, points: 10 } as any;
+      setCurrentQuestion(fallback);
+    } finally {
       setAiFeedback(null);
       setUserInput('');
       setCurrentQuestionIndex(idx => idx + 1);
-    } catch (e) {
-      console.error('Failed to load next task', e);
     }
   };
 
