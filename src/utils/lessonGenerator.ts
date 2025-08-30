@@ -157,14 +157,14 @@ ${buildSchema(skill)}
   const title = `${skill[0].toUpperCase()+skill.slice(1)} • ${level[0].toUpperCase()+level.slice(1)}`;
   const lessonsArr = Array.isArray(data?.lessons) ? data.lessons as LessonData[] : [];
   if (lessonsArr.length === 0) {
-    // Fallback minimal deterministic lessons per skill
+    const { lessonsPerSection } = getLessonConfig();
     const baseTitle = `${title}`;
-    const fallback: LessonData[] = [0,1,2].map(i => {
+    const fallback: LessonData[] = Array.from({ length: lessonsPerSection }).map((_, i) => {
       const id = `${skill}-${level}-lesson-${i+1}`;
       if (skill === 'listening') return { id, title: `${baseTitle} L${i+1}`, audioText: 'Listen carefully to the short passage about daily activities.', questions: [{ id: `${id}-q1`, question: 'What is the main topic?', type: 'mcq', options: ['Daily routine','Weather','Travel','Food'], correctAnswer: 0, points: 10 }] } as any;
       if (skill === 'reading') return { id, title: `${baseTitle} L${i+1}`, text: 'Read a short paragraph about a community event happening this week.', questions: [{ id: `${id}-q1`, question: 'When is the event?', type: 'fill-blank', correctAnswer: 'this week', points: 10 }] } as any;
-      if (skill === 'speaking') return { id, title: `${baseTitle} L${i+1}`, instructions: 'Describe your morning routine in 3-5 sentences.', prompts: ['What time do you wake up?'], questions: [{ id: `${id}-q1`, question: 'Speak about your routine.', type: 'open', correctAnswer: 'Clear, structured routine with time markers', points: 20 }] } as any;
-      if (skill === 'writing') return { id, title: `${baseTitle} L${i+1}`, prompt: 'Write about your favorite place and why you like it.', instructions: ['Use past tense at least once'], minWords: level==='beginner'?80:level==='intermediate'?120:180, questions: [{ id: `${id}-q1`, question: 'Submit your paragraph.', type: 'open', correctAnswer: 'Coherent paragraph with reasons and details', points: 20 }] } as any;
+      if (skill === 'speaking') return { id, title: `${baseTitle} L${i+1}`, instructions: 'Describe your morning routine in a few sentences.', prompts: ['What time do you wake up?'], questions: [{ id: `${id}-q1`, question: 'Speak about your routine.', type: 'open', correctAnswer: 'Clear, structured routine with time markers', points: 20 }] } as any;
+      if (skill === 'writing') return { id, title: `${baseTitle} L${i+1}`, prompt: 'Write about your favorite place and why you like it.', instructions: ['Use past tense at least once'], minWords: 0, questions: [{ id: `${id}-q1`, question: 'Submit your paragraph.', type: 'open', correctAnswer: 'Coherent paragraph with reasons and details', points: 20 }] } as any;
       if (skill === 'grammar') return { id, title: `${baseTitle} L${i+1}`, explanation: 'Present simple vs present continuous.', examples: ['I eat breakfast at 8.', 'I am eating now.'], questions: [{ id: `${id}-q1`, question: 'Choose the correct form: I ____ now.', type: 'mcq', options: ['eat','am eating','eats','ate'], correctAnswer: 1, points: 10 }] } as any;
       return { id, title: `${baseTitle} L${i+1}`, words: [{ word: 'adapt', definition: 'to change to fit new conditions', example: 'Plants adapt to different climates.' }], questions: [{ id: `${id}-q1`, question: 'Choose the synonym of adapt', type: 'mcq', options: ['change','ignore','reject','delay'], correctAnswer: 0, points: 10 }] } as any;
     });
