@@ -35,9 +35,8 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
 
   const { isListening, transcript, error: speechError, startListening, stopListening, resetTranscript } = useSpeechRecognition();
 
-  const questions = lesson.questions || [];
-  const currentQuestion = questions[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  const [currentLesson, setCurrentLesson] = useState<any>(lesson);
+  const [currentQuestion, setCurrentQuestion] = useState<any>((lesson.questions && lesson.questions[0]) || null);
 
   useEffect(() => {
     if (transcript && skill === 'speaking') {
