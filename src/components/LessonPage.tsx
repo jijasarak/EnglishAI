@@ -466,20 +466,7 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
 
         {renderContent()}
 
-        {questions.length > 0 ? (
-          renderQuestion()
-        ) : (
-          <div className="bg-white rounded-xl p-8 shadow-lg text-center">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Practice Complete!</h3>
-            <p className="text-gray-600 mb-6">You've reviewed all the content for this lesson.</p>
-            <button
-              onClick={() => onComplete(lesson.points || 20, lesson.id)}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 font-semibold"
-            >
-              Mark as Complete
-            </button>
-          </div>
-        )}
+        {renderQuestion()}
       </div>
     </div>
   );
