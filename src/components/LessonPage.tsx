@@ -293,8 +293,9 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
             <div className="space-y-3">
               {currentQuestion.options?.map((option, index) => {
                 const isSelected = answers.find(a => a.questionId === currentQuestion.id)?.answer === index;
-                const isCorrect = index === currentQuestion.correctAnswer;
-                
+                const resolved = resolveMcqCorrectIndex(currentQuestion);
+                const isCorrect = resolved != null ? index === resolved : false;
+
                 return (
                   <button
                     key={index}
@@ -331,8 +332,9 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
             <div className="flex space-x-4">
               {[true, false].map((value) => {
                 const isSelected = answers.find(a => a.questionId === currentQuestion.id)?.answer === value;
-                const isCorrect = value === currentQuestion.correctAnswer;
-                
+                const correct = normalizeBoolean(currentQuestion.correctAnswer);
+                const isCorrect = correct != null ? value === correct : false;
+
                 return (
                   <button
                     key={value.toString()}
