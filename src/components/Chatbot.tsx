@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
-
-const GEMINI_API_KEY = 'AIzaSyC1U4B2azzXyJwfO6byo_UHTJlb3MVU2uw';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+import { callGemini, getGeminiApiKey } from '../utils/ai';
 
 interface Message {
   id: string;
@@ -27,6 +25,16 @@ export function Chatbot() {
 
   const sendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
+    if (!getGeminiApiKey()) {
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Gemini API key missing. Click the gear icon in the header, paste your key, and try again.',
+        isUser: false,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -58,16 +66,7 @@ If it's about usage, show different contexts.
 Keep your response conversational but educational.
 `;
 
-      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }]
-        })
-      });
-      
-      const data = await response.json();
-      const aiResponse = data.candidates[0].content.parts[0].text;
+      const aiResponse = await callGemini(prompt);
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -77,11 +76,15 @@ Keep your response conversational but educational.
       };
 
       setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
+      const text = String(error?.message || error);
+      const friendly = text.includes('Missing Gemini API key')
+        ? 'Gemini API key missing. Click the gear icon in the header, paste your key, and try again.'
+        : "I'm sorry, I'm having trouble responding right now. Please try again in a moment!";
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I'm sorry, I'm having trouble responding right now. Please try again in a moment!",
+        text: friendly,
         isUser: false,
         timestamp: new Date()
       };

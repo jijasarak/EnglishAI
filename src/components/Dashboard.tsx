@@ -32,18 +32,6 @@ export function Dashboard({ user, onSectionSelect }: DashboardProps) {
       title: 'Writing',
       icon: '✍️',
       description: 'Develop writing skills with guided prompts and feedback'
-    },
-    {
-      key: 'grammar' as const,
-      title: 'Grammar',
-      icon: '📘',
-      description: 'Master English grammar rules and structures'
-    },
-    {
-      key: 'vocabulary' as const,
-      title: 'Vocabulary',
-      icon: '🧩',
-      description: 'Expand your word knowledge with interactive exercises'
     }
   ];
 

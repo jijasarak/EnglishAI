@@ -17,29 +17,9 @@ export interface SkillData {
   advanced: SectionData;
 }
 
-const skillFiles = {
-  listening: '/data/listening.json',
-  reading: '/data/reading.json',
-  speaking: '/data/speaking.json',
-  writing: '/data/writing.json',
-  grammar: '/data/grammar.json',
-  vocabulary: '/data/vocabulary.json'
-};
+import type { User } from '../types';
+import { generateSection } from './lessonGenerator';
 
-export async function loadSkillData(skill: keyof typeof skillFiles): Promise<SkillData> {
-  try {
-    const response = await fetch(skillFiles[skill]);
-    if (!response.ok) {
-      throw new Error(`Failed to load ${skill} data`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.error(`Error loading ${skill} data:`, error);
-    throw error;
-  }
-}
-
-export async function loadLessonData(skill: keyof typeof skillFiles, level: 'beginner' | 'intermediate' | 'advanced'): Promise<SectionData> {
-  const skillData = await loadSkillData(skill);
-  return skillData[level];
+export async function loadLessonData(skill: keyof Omit<User, 'totalXP'|'streak'|'lastActiveDate'|'badges'>, level: 'beginner' | 'intermediate' | 'advanced', user: User): Promise<SectionData> {
+  return await generateSection(skill, level, user);
 }

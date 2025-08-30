@@ -46,6 +46,8 @@ export function updateStreak(user: User): User {
   return { ...user, lastActiveDate: today };
 }
 
+import { LEVEL_THRESHOLDS } from './levels';
+
 export function addXP(user: User, section: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'>, amount: number): User {
   const updatedUser = {
     ...user,
@@ -55,17 +57,16 @@ export function addXP(user: User, section: keyof Omit<User, 'totalXP' | 'streak'
     },
     totalXP: user.totalXP + amount
   };
-  
+
   // Check for level up
   const currentSection = updatedUser[section];
-  const xpThresholds = { beginner: 50, intermediate: 150, advanced: 300 };
-  
-  if (currentSection.level === 'beginner' && currentSection.xp >= xpThresholds.beginner) {
+
+  if (currentSection.level === 'beginner' && currentSection.xp >= LEVEL_THRESHOLDS.beginner) {
     updatedUser[section].level = 'intermediate';
-  } else if (currentSection.level === 'intermediate' && currentSection.xp >= xpThresholds.intermediate) {
+  } else if (currentSection.level === 'intermediate' && currentSection.xp >= LEVEL_THRESHOLDS.intermediate) {
     updatedUser[section].level = 'advanced';
   }
-  
+
   return updateStreak(updatedUser);
 }
 
