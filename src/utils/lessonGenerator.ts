@@ -173,3 +173,28 @@ ${buildSchema(skill)}
 
   return section;
 }
+
+export async function generateNextTask(skill: string, recent: { correct: boolean; points?: number }[], difficultyHint?: number) {
+  const correctRate = recent.length ? recent.filter(r => r.correct).length / recent.length : 0.6;
+  const diff = difficultyHint || (correctRate > 0.75 ? 4 : correctRate > 0.5 ? 3 : 2);
+  const schema = `{
+  "lesson": {"title"?: string, "audioText"?: string, "text"?: string, "explanation"?: string, "examples"?: string[], "prompt"?: string, "instructions"?: string[], "minWords"?: number, "words"?: [{"word": string, "definition": string, "example": string}]},
+  "question": {"id": string, "question": string, "type": "mcq"|"true-false"|"fill-blank"|"open", "options"?: string[], "correctAnswer": string|number|boolean, "points": number}
+}`;
+  const prompt = `Generate the next ${skill} mini-lesson and a single question. Difficulty target ${diff}/5. Recent correct rate ${(correctRate*100).toFixed(0)}%.
+Return ONLY valid JSON matching this schema (no markdown):\n${schema}\nRules: MCQ must have 4 options and numeric correctAnswer (0-3); fill-blank correctAnswer is string; true-false is boolean; open has exemplar correctAnswer string.`;
+  let raw = await callGemini(prompt);
+  let data: any;
+  try { data = extractJson<any>(raw); } catch {
+    const repair = await callGemini(`Fix to strict JSON only (no markdown):\n${raw}`);
+    data = extractJson<any>(repair);
+  }
+  if (!data?.question) {
+    // fallback simple
+    data = {
+      lesson: skill === 'reading' ? { text: 'Read a short paragraph about a park visit.' } : skill === 'listening' ? { audioText: 'Listen to a short passage about a morning routine.' } : skill === 'grammar' ? { explanation: 'Present simple usage.' } : skill === 'writing' ? { prompt: 'Describe your weekend.' } : skill === 'speaking' ? { instructions: 'Talk about your daily schedule.' } : { words: [{ word: 'progress', definition: 'forward movement', example: 'You are making progress.' }] },
+      question: { id: `q-${Date.now()}`, question: 'What is the main idea?', type: 'mcq', options: ['Daily life','Sports','Food','Travel'], correctAnswer: 0, points: 10 }
+    };
+  }
+  return data;
+}
