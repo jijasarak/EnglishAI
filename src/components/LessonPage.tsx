@@ -378,13 +378,14 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
   };
 
   const renderContent = () => {
-    if (skill === 'listening' && lesson.audioText) {
+    const l = currentLesson || {};
+    if (skill === 'listening' && l.audioText) {
       return (
         <div className="mb-8 p-6 bg-blue-50 rounded-lg">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-blue-800">Listen to the passage</h3>
             <button
-              onClick={() => playAudio(lesson.audioText)}
+              onClick={() => playAudio(l.audioText)}
               disabled={isPlaying}
               className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
@@ -396,25 +397,25 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
       );
     }
 
-    if (skill === 'reading' && lesson.text) {
+    if (skill === 'reading' && l.text) {
       return (
         <div className="mb-8 p-6 bg-green-50 rounded-lg">
           <h3 className="text-lg font-semibold text-green-800 mb-4">Read the passage</h3>
-          <p className="text-gray-700 leading-relaxed">{lesson.text}</p>
+          <p className="text-gray-700 leading-relaxed">{l.text}</p>
         </div>
       );
     }
 
-    if (skill === 'speaking' && lesson.instructions) {
+    if (skill === 'speaking' && l.instructions) {
       return (
         <div className="mb-8 p-6 bg-purple-50 rounded-lg">
           <h3 className="text-lg font-semibold text-purple-800 mb-4">Speaking Exercise</h3>
-          <p className="text-gray-700 mb-4">{lesson.instructions}</p>
-          {lesson.prompts && (
+          <p className="text-gray-700 mb-4">{l.instructions}</p>
+          {l.prompts && (
             <div className="space-y-2">
               <p className="font-medium text-purple-700">Prompts:</p>
               <ul className="list-disc list-inside space-y-1 text-gray-700">
-                {lesson.prompts.map((prompt: string, index: number) => (
+                {l.prompts.map((prompt: string, index: number) => (
                   <li key={index}>{prompt}</li>
                 ))}
               </ul>
@@ -424,67 +425,21 @@ export function LessonPage({ skill, lesson, onComplete, onBack }: LessonPageProp
       );
     }
 
-    if (skill === 'writing' && lesson.prompt) {
+    if (skill === 'writing' && l.prompt) {
       return (
         <div className="mb-8 p-6 bg-yellow-50 rounded-lg">
           <h3 className="text-lg font-semibold text-yellow-800 mb-4">Writing Prompt</h3>
-          <p className="text-gray-700 mb-4">{lesson.prompt}</p>
-          {lesson.instructions && (
+          <p className="text-gray-700 mb-4">{l.prompt}</p>
+          {l.instructions && (
             <div className="space-y-2">
               <p className="font-medium text-yellow-700">Instructions:</p>
               <ul className="list-disc list-inside space-y-1 text-gray-700">
-                {lesson.instructions.map((instruction: string, index: number) => (
+                {l.instructions.map((instruction: string, index: number) => (
                   <li key={index}>{instruction}</li>
                 ))}
               </ul>
             </div>
           )}
-        </div>
-      );
-    }
-
-    if (skill === 'grammar' && lesson.explanation) {
-      return (
-        <div className="mb-8 p-6 bg-indigo-50 rounded-lg">
-          <h3 className="text-lg font-semibold text-indigo-800 mb-4">Grammar Rule</h3>
-          <p className="text-gray-700 mb-4">{lesson.explanation}</p>
-          {lesson.examples && (
-            <div className="space-y-2">
-              <p className="font-medium text-indigo-700">Examples:</p>
-              <ul className="list-disc list-inside space-y-1 text-gray-700">
-                {lesson.examples.map((example: string, index: number) => (
-                  <li key={index}>{example}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (skill === 'vocabulary' && lesson.words) {
-      return (
-        <div className="mb-8 p-6 bg-pink-50 rounded-lg">
-          <h3 className="text-lg font-semibold text-pink-800 mb-4">Vocabulary Words</h3>
-          <div className="grid gap-4">
-            {lesson.words.map((word: any, index: number) => (
-              <div key={index} className="bg-white p-4 rounded-lg border border-pink-200">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-lg font-semibold text-gray-800">{word.word}</h4>
-                  {word.pronunciation && (
-                    <span className="text-sm text-gray-500">{word.pronunciation}</span>
-                  )}
-                </div>
-                <p className="text-gray-700 mb-2">{word.definition}</p>
-                <p className="text-gray-600 italic mb-2">"{word.example}"</p>
-                {word.synonyms && word.synonyms.length > 0 && (
-                  <p className="text-sm text-gray-500">
-                    Synonyms: {word.synonyms.join(', ')}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       );
     }
