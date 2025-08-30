@@ -127,6 +127,14 @@ function buildSchema(skill: string) {
 }`;
 }
 
+function slugify(input: string): string {
+  return String(input || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-');
+}
+
 export async function generateSection(skill: keyof Omit<User, 'totalXP'|'streak'|'lastActiveDate'|'badges'>, level: 'beginner'|'intermediate'|'advanced', user: User): Promise<SectionData> {
   const progress = user[skill as keyof Omit<User, 'totalXP'|'streak'|'lastActiveDate'|'badges'>] as any;
   const diff = difficultyFromProgress(progress, level);
@@ -175,11 +183,16 @@ ${buildSchema(skill)}
     title,
     description: `AI-generated ${skill} lessons for ${level} level with adaptive difficulty` ,
     xpRequired: level === 'beginner' ? 0 : level === 'intermediate' ? 100 : 300,
-    lessons: (data.lessons as LessonData[]).map((l, i) => ({
-      ...l,
-      id: (l as any).id || `${skill}-${level}-lesson-${i+1}`,
-      title: (l as any).title || `${title}: Lesson ${i+1}`
-    })),
+    lessons: (data.lessons as LessonData[]).map((l, i) => {
+      const t = (l as any).title || `${title}: Lesson ${i+1}`;
+      const stableIdFromTitle = `${skill}-${level}-${slugify(t)}`;
+      const legacyIndexId = `${skill}-${level}-lesson-${i+1}`;
+      return {
+        ...l,
+        id: (l as any).id || stableIdFromTitle || legacyIndexId,
+        title: t,
+      } as LessonData;
+    }),
   };
 
   return section;
