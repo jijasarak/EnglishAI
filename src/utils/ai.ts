@@ -17,22 +17,32 @@ export async function callGemini(prompt: string): Promise<string> {
   const apiKey = getGeminiApiKey();
   if (!apiKey) throw new Error('Missing Gemini API key');
 
-  const res = await fetch(`${getGeminiApiUrl()}?key=${apiKey}`, {
+  const url = `${getGeminiApiUrl()}?key=${apiKey}`;
+  const options: RequestInit = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] }),
-  });
+    cache: 'no-store',
+  };
 
-  // Read the body ONCE to avoid "body stream already read" issues
-  // Clone first in case any middleware/devtools touches the original response
+  async function fetchOnce(): Promise<string> {
+    const res = await fetch(url, options);
+    const rawText = await res.text(); // read once
+    if (!res.ok) throw new Error(`Gemini error ${res.status}: ${rawText}`);
+    return rawText;
+  }
+
   let rawText: string;
   try {
-    rawText = await res.clone().text();
-  } catch {
-    rawText = await res.text();
-  }
-  if (!res.ok) {
-    throw new Error(`Gemini error ${res.status}: ${rawText}`);
+    rawText = await fetchOnce();
+  } catch (err: any) {
+    const msg = String(err?.message || err);
+    if (/body stream already read|bodyUsed/i.test(msg)) {
+      // Retry with a brand new request body
+      rawText = await fetchOnce();
+    } else {
+      throw err;
+    }
   }
 
   let data: any;
