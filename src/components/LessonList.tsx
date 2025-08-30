@@ -54,9 +54,8 @@ export function LessonList({ skill, level, user, onLessonSelect, onBack }: Lesso
     return user[skill].completed.includes(lessonId);
   };
 
-  const canAccessLesson = (index: number) => {
-    if (index === 0) return true;
-    return isLessonCompleted(sectionData?.lessons[index - 1]?.id || '');
+  const canAccessLesson = (_index: number) => {
+    return true; // no gating; continuous learning flow
   };
 
   const IconComponent = skillIcons[skill];
@@ -140,25 +139,18 @@ export function LessonList({ skill, level, user, onLessonSelect, onBack }: Lesso
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800">{lesson.title}</h3>
                       <p className="text-sm text-gray-600">
-                        {completed ? 'Completed' : canAccess ? 'Available' : 'Locked'}
+                        {completed ? 'Completed' : 'Available'}
                       </p>
                     </div>
                   </div>
                   
                   <div className="text-right">
-                    {!canAccess && index > 0 && (
-                      <p className="text-sm text-gray-500">
-                        Complete previous lesson to unlock
-                      </p>
-                    )}
-                    {canAccess && (
-                      <div className="flex items-center space-x-2">
-                        <IconComponent className="w-5 h-5 text-blue-600" />
-                        <span className="text-blue-600 font-medium">
-                          {completed ? 'Review' : 'Start'}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      <IconComponent className="w-5 h-5 text-blue-600" />
+                      <span className="text-blue-600 font-medium">
+                        {completed ? 'Review' : 'Start'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </motion.div>
