@@ -11,10 +11,13 @@ import { LessonList } from './components/LessonList';
 import { LessonPage } from './components/LessonPage';
 import { Confetti } from './components/Confetti';
 import { Chatbot } from './components/Chatbot';
+import { LessonsSection } from './components/LessonsSection';
+import { LessonProgress } from './types/lesson';
 import { LEVEL_THRESHOLDS } from './utils/levels';
 
 type ViewState = 
   | { type: 'dashboard' }
+  | { type: 'lessons' }
   | { type: 'levelSelector'; section: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'> }
   | { type: 'lessonList'; section: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'>; level: 'beginner' | 'intermediate' | 'advanced' }
   | { type: 'lesson'; section: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'>; lesson: LessonData };
@@ -30,7 +33,34 @@ function App() {
   }, [user]);
 
   const handleSectionSelect = (section: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'>) => {
-    setCurrentView({ type: 'levelSelector', section });
+    if (section === 'lessons' as any) {
+      setCurrentView({ type: 'lessons' });
+    } else {
+      setCurrentView({ type: 'levelSelector', section });
+    }
+  };
+
+  const handleLessonsSelect = () => {
+    setCurrentView({ type: 'lessons' });
+  };
+
+  const handleLessonComplete = (lessonId: string, progress: LessonProgress) => {
+    // Award XP for lesson completion
+    const xpEarned = progress.exerciseResults.reduce((sum, result) => sum + result.points, 0);
+    let updatedUser = addXP(user, 'grammar', xpEarned); // Default to grammar, could be more sophisticated
+    
+    // Check for new badges
+    const newBadges = checkNewBadges(updatedUser);
+    if (newBadges.length > 0) {
+      updatedUser = {
+        ...updatedUser,
+        badges: [...updatedUser.badges, ...newBadges]
+      };
+      setNewBadgeCount(newBadges.length);
+      setShowConfetti(true);
+    }
+    
+    setUser(updatedUser);
   };
 
   const handleLevelSelect = (level: 'beginner' | 'intermediate' | 'advanced') => {
@@ -141,6 +171,21 @@ function App() {
           </motion.div>
         )}
         
+        {currentView.type === 'lessons' && (
+          <motion.div
+            key="lessons"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+          >
+            <LessonsSection 
+              user={user} 
+              onBack={handleBackToDashboard}
+              onLessonComplete={handleLessonComplete}
+            />
+          </motion.div>
+        )}
+        
         {currentView.type === 'levelSelector' && (
           <motion.div
             key="levelSelector"
@@ -153,6 +198,17 @@ function App() {
               icon={sectionIcons[currentView.section]}
               progress={user[currentView.section]}
               onLevelSelect={handleLevelSelect}
+              onLevelUp={(newLevel) => {
+                const updatedUser = {
+                  ...user,
+                  [currentView.section]: {
+                    ...user[currentView.section],
+                    level: newLevel
+                  }
+                };
+                setUser(updatedUser);
+                setShowConfetti(true);
+              }}
               onBack={handleBackToDashboard}
             />
           </motion.div>

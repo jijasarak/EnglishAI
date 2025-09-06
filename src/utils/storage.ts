@@ -61,15 +61,35 @@ export function addXP(user: User, section: keyof Omit<User, 'totalXP' | 'streak'
   // Check for level up
   const currentSection = updatedUser[section];
 
-  if (currentSection.level === 'beginner' && currentSection.xp >= LEVEL_THRESHOLDS.beginner) {
-    updatedUser[section].level = 'intermediate';
-  } else if (currentSection.level === 'intermediate' && currentSection.xp >= LEVEL_THRESHOLDS.intermediate) {
-    updatedUser[section].level = 'advanced';
-  }
+  // Level progression is now manual - users must explicitly unlock next level
+  // This fixes the automatic progression issue
 
   return updateStreak(updatedUser);
 }
 
+export function unlockNextLevel(user: User, section: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'>): User {
+  const currentSection = user[section];
+  
+  if (currentSection.level === 'beginner' && currentSection.xp >= LEVEL_THRESHOLDS.beginner) {
+    return {
+      ...user,
+      [section]: {
+        ...currentSection,
+        level: 'intermediate'
+      }
+    };
+  } else if (currentSection.level === 'intermediate' && currentSection.xp >= LEVEL_THRESHOLDS.intermediate) {
+    return {
+      ...user,
+      [section]: {
+        ...currentSection,
+        level: 'advanced'
+      }
+    };
+  }
+  
+  return user;
+}
 export function completeActivity(user: User, section: keyof Omit<User, 'totalXP' | 'streak' | 'lastActiveDate' | 'badges'>, activityId: string): User {
   const sectionData = user[section];
   if (sectionData.completed.includes(activityId)) {

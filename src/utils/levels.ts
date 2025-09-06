@@ -24,3 +24,13 @@ export function isLevelUnlocked(currentXp: number, target: LevelKey) {
 export function isLevelCompleted(currentXp: number, target: LevelKey) {
   return currentXp >= LEVEL_THRESHOLDS[target];
 }
+
+export function shouldUnlockNextLevel(currentXp: number, currentLevel: LevelKey): boolean {
+  return currentXp >= LEVEL_THRESHOLDS[currentLevel];
+}
+
+export function getNextLevel(currentLevel: LevelKey): LevelKey | null {
+  if (currentLevel === 'beginner') return 'intermediate';
+  if (currentLevel === 'intermediate') return 'advanced';
+  return null;
+}

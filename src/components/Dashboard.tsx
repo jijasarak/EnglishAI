@@ -61,6 +61,23 @@ export function Dashboard({ user, onSectionSelect }: DashboardProps) {
           </motion.p>
         </div>
 
+        <div className="text-center mb-8">
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            onClick={() => (onSectionSelect as any)('lessons')}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            📚 Learning Modules
+          </motion.button>
+          <p className="text-gray-600 mt-2 text-sm">
+            Structured lessons with examples and exercises
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {sections.map((section, index) => (
             <motion.div

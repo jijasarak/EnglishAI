@@ -1,23 +1,29 @@
 import { motion } from 'framer-motion';
 import { isLevelUnlocked, isLevelCompleted, LEVEL_THRESHOLDS } from '../utils/levels';
 import { User, UserProgress } from '../types';
-import { Lock, CheckCircle } from 'lucide-react';
+import { Lock, CheckCircle, Star } from 'lucide-react';
 
 interface LevelSelectorProps {
   title: string;
   icon: string;
   progress: UserProgress;
   onLevelSelect: (level: 'beginner' | 'intermediate' | 'advanced') => void;
+  onLevelUp?: (level: 'beginner' | 'intermediate' | 'advanced') => void;
   onBack: () => void;
 }
 
-export function LevelSelector({ title, icon, progress, onLevelSelect, onBack }: LevelSelectorProps) {
+export function LevelSelector({ title, icon, progress, onLevelSelect, onLevelUp, onBack }: LevelSelectorProps) {
   const levels = ['beginner', 'intermediate', 'advanced'] as const;
   
   const isUnlocked = (level: typeof levels[number]) => isLevelUnlocked(progress.xp, level);
 
   const isCompleted = (level: typeof levels[number]) => isLevelCompleted(progress.xp, level);
 
+  const canLevelUp = (level: typeof levels[number]) => {
+    if (level === 'beginner') return progress.xp >= LEVEL_THRESHOLDS.beginner && progress.level === 'beginner';
+    if (level === 'intermediate') return progress.xp >= LEVEL_THRESHOLDS.intermediate && progress.level === 'intermediate';
+    return false;
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-4xl mx-auto">
@@ -40,6 +46,7 @@ export function LevelSelector({ title, icon, progress, onLevelSelect, onBack }: 
             const unlocked = isUnlocked(level);
             const completed = isCompleted(level);
             const isCurrent = progress.level === level;
+            const levelUp = canLevelUp(level);
             
             return (
               <motion.div
@@ -65,6 +72,9 @@ export function LevelSelector({ title, icon, progress, onLevelSelect, onBack }: 
                   {isCurrent && unlocked && !completed && (
                     <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
                   )}
+                  {levelUp && (
+                    <Star className="w-5 h-5 text-yellow-500 animate-pulse" />
+                  )}
                 </div>
                 
                 <div className="space-y-3">
@@ -87,6 +97,24 @@ export function LevelSelector({ title, icon, progress, onLevelSelect, onBack }: 
                     <div className="bg-blue-50 text-blue-700 text-sm px-3 py-2 rounded-lg">
                       Current Level
                     </div>
+                  )}
+                  
+                  {levelUp && (
+                    <div className="bg-yellow-50 text-yellow-700 text-sm px-3 py-2 rounded-lg animate-pulse">
+                      ⭐ Ready to Level Up!
+                    </div>
+                  )}
+                  
+                  {levelUp && onLevelUp && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onLevelUp(level === 'beginner' ? 'intermediate' : 'advanced');
+                      }}
+                      className="w-full bg-yellow-500 text-white text-sm px-3 py-2 rounded-lg hover:bg-yellow-600 font-medium"
+                    >
+                      🚀 Level Up Now!
+                    </button>
                   )}
                   
                   {!unlocked && (
